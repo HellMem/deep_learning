@@ -4,6 +4,7 @@ import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
 from scipy import ndimage
+import matplotlib.pyplot as plt
 
 
 def load_dataset():
@@ -29,23 +30,20 @@ def sigmoid(z):
 
 def init_parameters(dim):
     w = np.zeros([dim, 1])
-    return [w, 0]
+    return w, 0
 
 
-def fb_propagation(weights, bias, X, Y):
+def fb_propagation(X, Y, w, b):
     m = X.shape[1]
-
-    Z = np.dot(weights.T, X) + bias
-
-    A = sigmoid(Z)
-
-    cost = 1. / m * (np.dot(Y, np.log(A).T) + np.dot((1 - Y), np.log(1 - A).T))
+    z = np.dot(w.T, X) + b
+    A = sigmoid(z)
+    cost = (- 1. / m * (np.dot(Y, np.log(A).T) + np.dot((1 - Y), np.log(1 - A).T)))[0]
 
     dw = 1. / m * (np.dot(X, (A - Y).T))
     db = 1. / m * (np.sum(A - Y))
 
-    gradients = {"dw": dw, "db": db}
-
+    gradients = {"dw": dw,
+                 "db": db}
     return gradients, cost
 
 
@@ -53,7 +51,7 @@ def optimization(X, Y, w, b, iterations, learning_rate):
     costs = []
 
     for i in range(iterations):
-        gradients, cost = fb_propagation(w, b, X, Y)
+        gradients, cost = fb_propagation(X, Y, w, b)
 
         dw = gradients["dw"]
         db = gradients["db"]
@@ -80,17 +78,18 @@ def optimization(X, Y, w, b, iterations, learning_rate):
 def prediction(X, w, b):
     A = sigmoid(np.dot(w.T, X) + b)
     m = X.shape[1]
-    Yp = np.zeroes((1, m))
+    Yp = np.zeros((1, m))
 
     for i in range(m):
         if A[0][i] > 0.5:
             Yp[0][i] = 1
-
+        else:
+            Yp[0][i] = 0
     return Yp
 
 
 def model(X_train, Y_train, X_test, Y_test, iterations, learning_rate):
-    Xn = X_train.shape[1]
+    Xn = X_train.shape[0]
     w, b = init_parameters(Xn)
 
     parameters, gradients, costs = optimization(X_train, Y_train, w, b, iterations, learning_rate)
@@ -104,46 +103,49 @@ def model(X_train, Y_train, X_test, Y_test, iterations, learning_rate):
     print(f"Exactitud (X_train): {100 - np.mean(np.abs(Yp_train - Y_train)) * 100}%")
     print(f"Exactitud (X_test): {100 - np.mean(np.abs(Yp_test - Y_test)) * 100}%")
 
-    description = {"Costs": costs, "Yp_test": Yp_test, "Yp_train": Yp_train, "w": w, "b": b, "iterations": iterations,
+    description = {"costs": costs, "Yp_test": Yp_test, "Yp_train": Yp_train, "w": w, "b": b, "iterations": iterations,
                    "learning_rate": learning_rate}
 
     return description
 
 
+def show_image(dataset, index):
+    plt.figure(100)
+    plt.imshow(dataset[index])
+
+
 if __name__ == "__main__":
     [train_set_x, train_set_y, test_set_x, test_set_y, list_classes] = load_dataset()
-
-    print(train_set_x.shape)
-    print(train_set_y.shape)
-    print(test_set_x.shape)
-    print(test_set_y.shape)
-    print(list_classes.shape)
 
     train_m = train_set_x.shape[0]
     test_m = test_set_x.shape[0]
     img_dim = train_set_x.shape[1]
 
-    print("Training size: ", train_m)
-    print("Test size: ", test_m)
-    print("Image Dimension: ", img_dim)
+    train_set_x_flatten = train_set_x.reshape(train_m, -1).T
+    train_set_x_flatten = train_set_x_flatten / 255.
 
-    train_set_x = train_set_x.reshape(img_dim * img_dim * 3, -1).T
-    train_set_x = train_set_x / 255.
+    test_set_x_flatten = test_set_x.reshape(test_m, -1).T
+    test_set_x_flatten = test_set_x_flatten / 255.
 
-    test_set_x = test_set_x.reshape(img_dim * img_dim * 3, -1).T
-    test_set_x = test_set_x / 255.
-
-    description = model(train_set_x, train_set_y, test_set_x, test_set_y, 1000, 0.003)
-    #dim = img_dim * img_dim * 3
-    #w, b = init_parameters(dim)
+    description = model(train_set_x_flatten, train_set_y, test_set_x_flatten, test_set_y, 2000, 0.003)
 
 
 
-    #X = np.array([[1, 2], [3, 4], [5, 6]])
-    #Y = np.array([[1, 0]])
-    #w = np.array([[1], [2], [3]])
-    #b = 1
-    #grads, cost = fb_propagation(X, Y, w, b)
-    #print("dw = " + str(grads["dw"]))
-    #print("db = " + str(grads["db"]))
-    #print("cost = " + str(cost))
+    w = description["w"]
+    b = description["b"]
+    #Imagen mal clasificada en el índice 30 del test set:
+    print(f"Resultado esperado: 1, resultado obtenido: {prediction(test_set_x[30].reshape(1, -1).T, w, b)}")
+    show_image(test_set_x, 30)
+
+
+    costs = description["costs"]
+
+    cost_history = description["costs"]
+    iter_history = np.array(range(len(cost_history)))
+
+    plt.figure(200)
+    plt.plot(iter_history, cost_history, 'ro')
+    plt.gca().set_title('learning rate: ' + str(0.003))
+    plt.xlabel('iterations')
+    plt.ylabel('cost')
+    plt.show()
