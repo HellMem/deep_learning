@@ -1,10 +1,5 @@
 import numpy as np
-import h5py
-import cv2
-import matplotlib.pyplot as plt
-from PIL import Image
-from scipy import ndimage
-
+import copy
 
 def load_dataset():
     np.random.seed(1)
@@ -35,8 +30,7 @@ def layer_sizes_test():
 def layer_sizes(X, Y):
     n_x = X.shape[0]
     n_y = Y.shape[0]
-    n_h = 4
-    return n_x, n_h, n_y
+    return n_x, n_y
 
 
 def init_parameters(n_x, n_h, n_y):
@@ -57,7 +51,7 @@ def sigmoid(x):
     return s
 
 
-def feed_forward(X, weights, biases):
+def forward_prop(X, weights, biases):
     H = X
     for i in range(len(weights)):
         weight = weights[i]
@@ -81,15 +75,19 @@ def back_prop(X, Y, weights, biases):
 
         zs = []
 
-        for b, w in zip(biases, weights):
-            z = np.dot(activation, w) + b
-            zs.append(z)
-            activation = sigmoid(z)
-            activations.append(activation)
+        z1 = np.dot(activation, weights[0]) + biases[0]
+        zs.append(z1)
+        activation = sigmoid(z1)
+        activations.append(activation)
 
-        delta = (activations[-1] - y) * sigmoid_prime(zs[-1])
-        delta_errors_biases[-1] = delta
-        delta_errors_weights[-1] = np.dot(activations[-2].transpose(), delta)
+        z2 = np.dot(activation, weights[1]) + biases[1]
+        zs.append(z2)
+        activation = np.tanh(z2)
+        activations.append(activation)
+
+        delta = (activations[1] - y)
+        delta_errors_biases[1] = delta
+        delta_errors_weights[1] = np.dot(activations[1].transpose(), delta)
 
         error_weights = [ew + dew for ew, dew in zip(error_weights, delta_errors_weights)]
         error_biases = [eb + deb for eb, deb in zip(error_biases, delta_errors_biases)]
@@ -97,39 +95,95 @@ def back_prop(X, Y, weights, biases):
     return error_weights, error_biases
 
 
-def sigmoid_prime(z):
-    return sigmoid(z) * (1 - sigmoid(z))
-
-
 def cost_function(X, Y, weights, biases):
     cost = 0
+    epsilon = 1e-5
 
     for x, y in zip(X.T, Y.T):
-        predictions = feed_forward(x, weights, biases)
-        predictions = np.square(predictions)
+        predictions = forward_prop(x, weights, biases)
 
-        part1_cost = y * np.log(predictions)
+        part1_cost = y * np.log(predictions + epsilon)
 
-        part2_cost = (1 - y) * np.log(1 - predictions)
+        part2_cost = (1 - y) * np.log(1 - predictions + epsilon)
 
         cost += (part1_cost.sum() + part2_cost.sum())
 
     return -cost / len(X)
 
 
-if __name__ == "__main__":
-    # print(f"n_x={n_x}")
-    # print(f"n_y={n_y}")
-    # print(f"n_h={n_h}")
+# Se ejecuta el gradiente descendiente para determinar el módelo óptimo
+def train(X, y, weights, biases, alpha, iters):
+    training_set_size = len(X)
+    history = {'cost': [], 'iter': []}
+
+    for i in range(iters):
+        gradW, gradB = back_prop(X, y, weights, biases)
+        weights_copy = copy.deepcopy(weights)
+        weights = []
+        for w, g in zip(weights_copy, gradW):
+            w = np.add(w, - (g * alpha / training_set_size))
+            weights.append(w)
+
+        biases_copy = copy.deepcopy(biases)
+        biases = []
+        for b, g in zip(biases_copy, gradB):
+            b = np.add(b, - (g * alpha / training_set_size))
+            biases.append(b)
+
+        cost = cost_function(X, y, weights, biases)
+        history['cost'].append(cost)
+        history['iter'].append(i)
+
+        if i % 10 == 0:
+            print("iter: " + str(i) + " cost: " + str(cost))
+
+    return [weights, biases, history]
+
+def net_model_241():
     X, Y = load_dataset()
     X_test, Y_test = layer_sizes_test()
-    n_x, n_h, n_y = layer_sizes(X, Y)
-    parameters = init_parameters(n_x, n_h, n_y)
+    n_x, n_y = layer_sizes(X_test, Y_test)
+    learning_rate = 1.2
+    iterations = 1000
+
+    parameters = init_parameters(n_x, 4, n_y)
     weights = [parameters["W1"], parameters["W2"]]
     biases = [parameters["b1"], parameters["b2"]]
+    print("Para n_h = 4")
+    train(X, Y, weights, biases, learning_rate, iterations)
 
-    feed_forward(X, weights, biases)
+    parameters = init_parameters(n_x, 16, n_y)
+    weights = [parameters["W1"], parameters["W2"]]
+    biases = [parameters["b1"], parameters["b2"]]
+    print("Para n_h = 16")
+    train(X, Y, weights, biases, learning_rate, iterations)
 
-    cost_function(X, Y, weights, biases)
+    parameters = init_parameters(n_x, 32, n_y)
+    weights = [parameters["W1"], parameters["W2"]]
+    biases = [parameters["b1"], parameters["b2"]]
+    print("Para n_h = 32")
+    train(X, Y, weights, biases, learning_rate, iterations)
 
-    print(back_prop(X, Y, weights, biases))
+    parameters = init_parameters(n_x, 64, n_y)
+    weights = [parameters["W1"], parameters["W2"]]
+    biases = [parameters["b1"], parameters["b2"]]
+    print("Para n_h = 64")
+    train(X, Y, weights, biases, learning_rate, iterations)
+
+    parameters = init_parameters(n_x, 128, n_y)
+    weights = [parameters["W1"], parameters["W2"]]
+    biases = [parameters["b1"], parameters["b2"]]
+    print("Para n_h = 128")
+    train(X, Y, weights, biases, learning_rate, iterations)
+
+    parameters = init_parameters(n_x, 256, n_y)
+    weights = [parameters["W1"], parameters["W2"]]
+    biases = [parameters["b1"], parameters["b2"]]
+    print("Para n_h = 256")
+    train(X, Y, weights, biases, learning_rate, iterations)
+
+
+if __name__ == "__main__":
+    net_model_241()
+
+
