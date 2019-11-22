@@ -37,9 +37,9 @@ def build_data_lists(paths, shuffle_data=True):
 
 
 def build_h5_dataset(hdf5_path, train_x_l, val_x_l, test_x_l):
-    train_shape = (train_x_l, 256, 256, 3)
-    val_shape = (val_x_l, 256, 256, 3)
-    test_shape = (test_x_l, 256, 256, 3)
+    train_shape = (len(train_x_l), 256, 256, 3)
+    val_shape = (len(val_x_l), 256, 256, 3)
+    test_shape = (len(test_x_l), 256, 256, 3)
 
     # Abrir un archivo HDF5 en modo escritura
     hdf5_file = h5py.File(hdf5_path, mode='w')
@@ -50,9 +50,9 @@ def build_h5_dataset(hdf5_path, train_x_l, val_x_l, test_x_l):
     hdf5_file.create_dataset("train_mean", train_shape[1:])
 
     # crear los datasets de etiquetas: train_labels, val_labels, test_labels
-    hdf5_file.create_dataset("train_labels", (train_x_l,))
-    hdf5_file.create_dataset("val_labels", (val_x_l,))
-    hdf5_file.create_dataset("test_labels", (test_x_l,))
+    hdf5_file.create_dataset("train_labels", (train_x_l,), np.uint8)
+    hdf5_file.create_dataset("val_labels", (val_x_l,), np.uint8)
+    hdf5_file.create_dataset("test_labels", (test_x_l,), np.uint8)
 
     return hdf5_file
 
