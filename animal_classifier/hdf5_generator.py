@@ -6,6 +6,9 @@ import cv2
 from math import ceil
 import matplotlib.pyplot as plt
 
+width = 224
+height = 224
+
 
 def build_data_lists(paths, shuffle_data=True):
     animal_class = 0
@@ -37,9 +40,9 @@ def build_data_lists(paths, shuffle_data=True):
 
 
 def build_h5_dataset(hdf5_path, train_x_l, val_x_l, test_x_l):
-    train_shape = (train_x_l, 256, 256, 3)
-    val_shape = (val_x_l, 256, 256, 3)
-    test_shape = (test_x_l, 256, 256, 3)
+    train_shape = (train_x_l, width, height, 3)
+    val_shape = (val_x_l, width, height, 3)
+    test_shape = (test_x_l, width, height, 3)
 
     # Abrir un archivo HDF5 en modo escritura
     hdf5_file = h5py.File(hdf5_path, mode='w')
@@ -65,8 +68,6 @@ def load_images_to_h5_dataset(hdf5_file, train_addrs, val_addrs, test_addrs, tra
 
     train_shape = hdf5_file["train_img"].shape
     mean = np.zeros(train_shape[1:], np.float32)
-    width = 256
-    height = 256
     dim = (width, height)
 
     for i in range(len(train_addrs)):
@@ -137,24 +138,21 @@ def read_h5_dataset(hdf5_path, batch_size, batch_n):
 
 
 if __name__ == "__main__":
-
     paths = ["raw-img/cane**/*.jpeg", "raw-img/cavallo**/*.jpeg", "raw-img/elefante**/*.jpeg",
              "raw-img/farfalla**/*.jpeg", "raw-img/gallina**/*.jpeg", "raw-img/gatto**/*.jpeg",
              "raw-img/mucca**/*.jpeg", "raw-img/pecora**/*.jpeg", "raw-img/ragno**/*.jpeg",
              "raw-img/scoiattolo**/*.jpeg"]
 
-
-    #Para generar el archivo hdf5 
+    # Para generar el archivo hdf5
 
     train_addrs, train_labels, val_addrs, val_labels, test_addrs, test_labels = build_data_lists(paths)
-    hdf5_path = 'datasets/animals.h5'
+    hdf5_path = 'datasets/animals_224.h5'
     hdf5_file = build_h5_dataset(hdf5_path, len(train_addrs), len(val_addrs), len(test_addrs))
     print(f"Dimensiones train_img: {hdf5_file['train_img'].shape}")
     load_images_to_h5_dataset(hdf5_file, train_addrs, val_addrs, test_addrs, train_labels, val_labels, test_labels)
     hdf5_file.close()
 
-    #Para leer el archivo hdf5
-    hdf5_path = 'datasets/animals.h5'
+    # Para leer el archivo hdf5
     batch_size = 50
     batch_n = 4
     hdf5_file = read_h5_dataset(hdf5_path, batch_size, batch_n)
